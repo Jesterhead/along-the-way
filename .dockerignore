@@ -1,0 +1,12 @@
+**/node_modules
+**/dist
+**/generated
+apps/web/src/gql
+**/coverage
+**/.env
+**/.env.*
+!**/.env.example
+.git
+notes.md
+CLAUDE.local.md
+.claude

@@ -1,0 +1,57 @@
+# Local stack. `npm run dev` starts only `db`; `docker compose up --build` runs everything.
+# Credentials here are for local development only.
+services:
+  db:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: along
+      POSTGRES_PASSWORD: along
+      POSTGRES_DB: along_the_way
+    ports:
+      # 5433 on the host so it doesn't clash with a locally installed Postgres.
+      - '5433:5432'
+    volumes:
+      - db-data:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U along -d along_the_way']
+      interval: 2s
+      timeout: 5s
+      retries: 15
+
+  # One-shot job: apply migrations and seed, then exit. In the cloud this becomes a release/init step.
+  migrate:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: build
+    environment:
+      DATABASE_URL: postgresql://along:along@db:5432/along_the_way
+    command: sh -c "npm run db:deploy -w apps/api && npm run db:seed -w apps/api"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    environment:
+      DATABASE_URL: postgresql://along:along@db:5432/along_the_way
+      PORT: 4000
+    ports:
+      - '4000:4000'
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    ports:
+      - '8080:80'
+    depends_on:
+      - api
+
+volumes:
+  db-data:

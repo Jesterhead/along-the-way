@@ -1,0 +1,21 @@
+# Local-only working notes (never commit)
+notes.md
+CLAUDE.local.md
+
+# OS / editor
+.DS_Store
+.vscode/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Dependencies and build output
+node_modules/
+dist/
+coverage/
+
+# Generated code (recreated by `npm run generate`, which runs on install)
+apps/api/src/generated/
+apps/web/src/gql/

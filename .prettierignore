@@ -1,0 +1,9 @@
+**/dist
+**/generated
+apps/web/src/gql
+**/coverage
+package-lock.json
+apps/api/prisma/migrations
+.claude
+notes.md
+CLAUDE.local.md
