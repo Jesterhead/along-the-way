@@ -1,0 +1,38 @@
+{
+  "name": "@along-the-way/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch --env-file-if-exists=.env src/index.ts",
+    "build": "tsc -p tsconfig.build.json && node -e \"require('fs').cpSync('src/schema.graphql', 'dist/src/schema.graphql')\"",
+    "start": "node dist/src/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "generate": "prisma generate && graphql-codegen",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:seed": "prisma db seed",
+    "db:reset": "prisma migrate reset --force"
+  },
+  "dependencies": {
+    "@apollo/server": "^5.5.1",
+    "@as-integrations/express5": "^1.1.2",
+    "@prisma/adapter-pg": "~7.10.0",
+    "@prisma/client": "~7.10.0",
+    "express": "^5.3.0",
+    "graphql": "^16.14.2"
+  },
+  "devDependencies": {
+    "@graphql-codegen/cli": "^7.4.6",
+    "@graphql-codegen/typescript": "^6.1.2",
+    "@graphql-codegen/typescript-resolvers": "^6.1.1",
+    "@types/express": "^5.0.6",
+    "@types/node": "^24.19.2",
+    "dotenv": "^18.0.8",
+    "prisma": "~7.10.0",
+    "tsx": "^4.23.15",
+    "vitest": "^5.0.4"
+  }
+}

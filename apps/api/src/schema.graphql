@@ -1,0 +1,18 @@
+type Query {
+  "Liveness check for the GraphQL layer."
+  health: String!
+
+  "The current user. Until accounts exist, this is the seeded local user."
+  me: User
+}
+
+type User {
+  id: ID!
+  displayName: String!
+  journals: [Journal!]!
+}
+
+type Journal {
+  id: ID!
+  title: String!
+}
