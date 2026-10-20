@@ -10,7 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
-    "generate": "graphql-codegen"
+    "generate": "graphql-codegen",
+    "generate:watch": "graphql-codegen --watch"
   },
   "dependencies": {
     "@apollo/client": "^4.3.3",
@@ -23,6 +24,7 @@
   "devDependencies": {
     "@graphql-codegen/cli": "^7.4.6",
     "@graphql-codegen/client-preset": "^6.2.3",
+    "@parcel/watcher": "^2.6.0",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",

@@ -1,4 +1,5 @@
 import 'dotenv/config';
+
 import { createPrismaClient } from '../src/db.js';
 
 const databaseUrl = process.env['DATABASE_URL'];

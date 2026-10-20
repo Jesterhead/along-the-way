@@ -1,6 +1,8 @@
 import { MockedProvider } from '@apollo/client/testing/react';
 import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router';
 import { describe, expect, it } from 'vitest';
+
 import { HomePage } from './HomePage';
 import { HomePageQuery } from './HomePage.query';
 
@@ -24,12 +26,18 @@ describe('HomePage', () => {
 
     render(
       <MockedProvider mocks={mocks}>
-        <HomePage />
+        <MemoryRouter>
+          <HomePage />
+        </MemoryRouter>
       </MockedProvider>,
     );
 
     expect(await screen.findByText('Welcome, Local User.')).toBeInTheDocument();
     expect(screen.getByText('My Journal')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'My Journal' })).toHaveAttribute(
+      'href',
+      '/journals/journal-1',
+    );
   });
 
   it('shows an error when the API fails', async () => {
@@ -37,7 +45,9 @@ describe('HomePage', () => {
 
     render(
       <MockedProvider mocks={mocks}>
-        <HomePage />
+        <MemoryRouter>
+          <HomePage />
+        </MemoryRouter>
       </MockedProvider>,
     );
 

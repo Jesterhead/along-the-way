@@ -13,7 +13,11 @@ const config: CodegenConfig = {
         mappers: {
           User: './prisma/models.js#UserModel',
           Journal: './prisma/models.js#JournalModel',
+          Post: './prisma/models.js#PostModel',
+          Block: './prisma/models.js#BlockModel',
+          TextBlock: './prisma/models.js#BlockModel',
         },
+        scalars: { DateTime: 'Date' },
       },
     },
   },

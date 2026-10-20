@@ -1,5 +1,7 @@
 import assert from 'node:assert';
+
 import { describe, expect, it, vi } from 'vitest';
+
 import type { Context } from './context.js';
 import type { PrismaClient } from './db.js';
 import { createApolloServer } from './server.js';

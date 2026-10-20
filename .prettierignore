@@ -7,3 +7,6 @@ apps/api/prisma/migrations
 .claude
 notes.md
 CLAUDE.local.md
+.agents
+.windsurf
+skills-lock.json

@@ -4,7 +4,9 @@ CLAUDE.local.md
 
 # OS / editor
 .DS_Store
-.vscode/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
 
 # Environment / secrets
 .env
@@ -19,3 +21,9 @@ coverage/
 # Generated code (recreated by `npm run generate`, which runs on install)
 apps/api/src/generated/
 apps/web/src/gql/
+
+# AI-agent skills that tools like `prisma init` install. This repo's own skills live in /.claude only.
+.agents/
+.windsurf/
+skills-lock.json
+apps/*/.claude/
