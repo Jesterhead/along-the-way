@@ -189,41 +189,6 @@ describe('journal query', () => {
       },
     ]);
   });
-
-  describe('input safety', () => {
-    it('returns NOT_FOUND, not an internal error, for malformed ids in mutations', async () => {
-      const user = await createUser();
-
-      const create = await execute(CREATE_POST, {
-        currentUserId: user.id,
-        variables: { journalId: 'not-a-uuid', input: { blocks: [{ type: 'TEXT', text: 'Hi' }] } },
-      });
-      const update = await execute(UPDATE_POST, {
-        currentUserId: user.id,
-        variables: { id: 'not-a-uuid', input: { blocks: [{ type: 'TEXT', text: 'Hi' }] } },
-      });
-
-      expect(errorCode(create)).toBe('NOT_FOUND');
-      expect(errorCode(update)).toBe('NOT_FOUND');
-    });
-
-    it('leaves the existing blocks untouched when an edit is rejected', async () => {
-      const user = await createUser();
-      const post = await createPost((await createJournal(user.id)).id, ['Keep me', 'Me too']);
-
-      const result = await execute(UPDATE_POST, {
-        currentUserId: user.id,
-        variables: { id: post.id, input: { blocks: [{ type: 'TEXT', text: '  ' }] } },
-      });
-
-      expect(errorCode(result)).toBe('BAD_USER_INPUT');
-      const blocks = await prisma.block.findMany({
-        where: { postId: post.id },
-        orderBy: { position: 'asc' },
-      });
-      expect(blocks.map((block) => block.text)).toEqual(['Keep me', 'Me too']);
-    });
-  });
 });
 
 function errorCode(result: { errors?: readonly { extensions?: Record<string, unknown> }[] }) {
@@ -308,5 +273,40 @@ describe('access control', () => {
       'UNAUTHENTICATED',
     ]);
     expect(await prisma.post.count()).toBe(1);
+  });
+});
+
+describe('input safety', () => {
+  it('returns NOT_FOUND, not an internal error, for malformed ids in mutations', async () => {
+    const user = await createUser();
+
+    const create = await execute(CREATE_POST, {
+      currentUserId: user.id,
+      variables: { journalId: 'not-a-uuid', input: { blocks: [{ type: 'TEXT', text: 'Hi' }] } },
+    });
+    const update = await execute(UPDATE_POST, {
+      currentUserId: user.id,
+      variables: { id: 'not-a-uuid', input: { blocks: [{ type: 'TEXT', text: 'Hi' }] } },
+    });
+
+    expect(errorCode(create)).toBe('NOT_FOUND');
+    expect(errorCode(update)).toBe('NOT_FOUND');
+  });
+
+  it('leaves the existing blocks untouched when an edit is rejected', async () => {
+    const user = await createUser();
+    const post = await createPost((await createJournal(user.id)).id, ['Keep me', 'Me too']);
+
+    const result = await execute(UPDATE_POST, {
+      currentUserId: user.id,
+      variables: { id: post.id, input: { blocks: [{ type: 'TEXT', text: '  ' }] } },
+    });
+
+    expect(errorCode(result)).toBe('BAD_USER_INPUT');
+    const blocks = await prisma.block.findMany({
+      where: { postId: post.id },
+      orderBy: { position: 'asc' },
+    });
+    expect(blocks.map((block) => block.text)).toEqual(['Keep me', 'Me too']);
   });
 });
