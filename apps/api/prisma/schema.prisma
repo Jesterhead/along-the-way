@@ -24,8 +24,37 @@ model Journal {
   title     String
   ownerId   String   @db.Uuid
   owner     User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  posts     Post[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([ownerId])
+}
+
+enum BlockType {
+  TEXT
+}
+
+model Post {
+  id        String   @id @default(uuid()) @db.Uuid
+  journalId String   @db.Uuid
+  journal   Journal  @relation(fields: [journalId], references: [id], onDelete: Cascade)
+  blocks    Block[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([journalId])
+}
+
+model Block {
+  id        String    @id @default(uuid()) @db.Uuid
+  text      String?
+  type      BlockType
+  position  Int
+  postId    String    @db.Uuid
+  post      Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@unique([postId, position])
 }

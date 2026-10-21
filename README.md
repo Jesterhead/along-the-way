@@ -27,7 +27,7 @@ cp apps/api/.env.example apps/api/.env
 npm run dev
 ```
 
-Open <http://localhost:5173>. `npm run dev` starts Postgres in Docker, applies migrations, seeds the database, then runs the API and web app locally with hot reload.
+Open <http://localhost:5173>. `npm run dev` starts Postgres in Docker, applies migrations, seeds the database, then runs the API and web app locally with hot reload. It also runs GraphQL Code Generator in watch mode, so the web app's types update whenever you edit a `graphql(...)` operation or the schema. After changing `apps/api/src/schema.graphql`, run `npm run generate` once to refresh the API's resolver types too.
 
 | Service     | Dev URL                              | Docker URL                    |
 | ----------- | ------------------------------------ | ----------------------------- |
@@ -41,19 +41,34 @@ Postgres listens on host port **5433** so it doesn't clash with a Postgres alrea
 
 Run from the repo root:
 
-| Command              | What it does                                                     |
-| -------------------- | ---------------------------------------------------------------- |
-| `npm run dev`        | Start DB, migrate, seed, run API and web with hot reload         |
-| `npm test`           | Run all tests (Vitest)                                           |
-| `npm run typecheck`  | Type-check both apps                                             |
-| `npm run lint`       | Lint with ESLint                                                 |
-| `npm run format`     | Format with Prettier                                             |
-| `npm run build`      | Production build of both apps                                    |
-| `npm run generate`   | Regenerate the Prisma client and GraphQL types (runs on install) |
-| `npm run db:migrate` | Create and apply a migration after editing `schema.prisma`       |
-| `npm run db:seed`    | Seed the local user and journal (idempotent)                     |
-| `npm run db:reset`   | Drop the database, reapply all migrations, and reseed            |
-| `npm run db:down`    | Stop the Docker containers                                       |
+| Command                            | What it does                                                       |
+| ---------------------------------- | ------------------------------------------------------------------ |
+| `npm run dev`                      | Start DB, migrate, seed, run API and web with hot reload           |
+| `npm run check`                    | Format check, lint, typecheck, and test. Run before opening a PR.  |
+| `npm test`                         | Start the DB if needed, then run all tests (Vitest)                |
+| `npm run typecheck`                | Type-check both apps                                               |
+| `npm run lint`                     | Lint with ESLint                                                   |
+| `npm run format`                   | Format with Prettier                                               |
+| `npm run build`                    | Production build of both apps                                      |
+| `npm run generate`                 | Regenerate the Prisma client and GraphQL types (runs on install)   |
+| `npm run db:migrate:new -- <name>` | Create a migration from `schema.prisma` without applying it        |
+| `npm run db:migrate`               | Apply pending migrations (creates one first if the schema changed) |
+| `npm run db:status`                | Show which migrations are applied or pending                       |
+| `npm run db:psql`                  | Open `psql` inside the Postgres container                          |
+| `npm run db:studio`                | Browse the data in Prisma Studio                                   |
+| `npm run db:seed`                  | Seed the local user and journal (idempotent)                       |
+| `npm run db:reset`                 | Drop the database, reapply all migrations, and reseed              |
+| `npm run db:down`                  | Stop the Docker containers                                         |
+
+Run `npm run` on its own to list every script.
+
+## Testing
+
+API tests are integration tests. They run GraphQL operations through the real server and resolvers against a dedicated `along_test` database in the same Postgres container. `npm test` starts the container if it isn't running, and the test run applies migrations automatically.
+
+- Every test starts with empty tables. Call `useTestDatabase()` at the top of a test file, and create the data each test needs with the helpers in `apps/api/test/helpers.ts`.
+- Override the database with `TEST_DATABASE_URL`. As a safeguard, the database name must end in `_test`, because tests delete all data in it.
+- Web tests use React Testing Library with mocked GraphQL responses and don't need a database.
 
 ## Project layout
 

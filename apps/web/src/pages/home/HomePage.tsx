@@ -1,4 +1,6 @@
 import { useQuery } from '@apollo/client/react';
+import { Link } from 'react-router';
+
 import { HomePageQuery } from './HomePage.query';
 
 export function HomePage() {
@@ -15,7 +17,9 @@ export function HomePage() {
       <h2>Your journals</h2>
       <ul>
         {data.me.journals.map((journal) => (
-          <li key={journal.id}>{journal.title}</li>
+          <li key={journal.id}>
+            <Link to={`/journals/${journal.id}`}>{journal.title}</Link>
+          </li>
         ))}
       </ul>
     </main>

@@ -8,5 +8,5 @@
     "outDir": "dist",
     "rootDir": "."
   },
-  "include": ["src", "prisma", "prisma.config.ts", "codegen.ts", "vitest.config.ts"]
+  "include": ["src", "test", "prisma", "prisma.config.ts", "codegen.ts", "vitest.config.ts"]
 }

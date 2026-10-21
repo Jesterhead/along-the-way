@@ -1,9 +1,21 @@
+scalar DateTime
+
 type Query {
   "Liveness check for the GraphQL layer."
   health: String!
 
   "The current user. Until accounts exist, this is the seeded local user."
   me: User
+
+  "Owned by the current user; null if missing or not theirs"
+  journal(id: ID!): Journal
+}
+
+type Mutation {
+  createPost(journalId: ID!, input: PostInput!): Post!
+
+  "Replaces the post's blocks with the ones in the input."
+  updatePost(id: ID!, input: PostInput!): Post!
 }
 
 type User {
@@ -15,4 +27,40 @@ type User {
 type Journal {
   id: ID!
   title: String!
+  "Newest first."
+  posts: [Post!]!
+}
+
+enum BlockType {
+  TEXT
+}
+
+input PostInput {
+  "Block order is the array order."
+  blocks: [BlockInput!]!
+}
+
+input BlockInput {
+  type: BlockType!
+  "Required when type is TEXT."
+  text: String
+}
+
+type Post {
+  id: ID!
+  journal: Journal!
+  blocks: [Block!]!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+interface Block {
+  id: ID!
+  position: Int!
+}
+
+type TextBlock implements Block {
+  id: ID!
+  position: Int!
+  text: String!
 }

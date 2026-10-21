@@ -8,7 +8,7 @@ const config: CodegenConfig = {
   generates: {
     'src/gql/': {
       preset: 'client',
-      config: { useTypeImports: true },
+      config: { useTypeImports: true, scalars: { DateTime: 'string' } },
     },
   },
 };

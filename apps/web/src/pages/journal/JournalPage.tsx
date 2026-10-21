@@ -1,0 +1,63 @@
+import { useQuery } from '@apollo/client/react';
+import { useState } from 'react';
+import { Link, useParams } from 'react-router';
+
+import { EditPostForm } from '../../posts/EditPostForm';
+import { NewPostForm } from '../../posts/NewPostForm';
+import { JournalPageQuery } from './JournalPage.query';
+
+const dateFormat = new Intl.DateTimeFormat(undefined, {
+  dateStyle: 'medium',
+  timeStyle: 'short',
+});
+
+export function JournalPage() {
+  const { id = '' } = useParams();
+  const { data, loading, error } = useQuery(JournalPageQuery, { variables: { id } });
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  if (loading) return <p>Loading…</p>;
+  if (error) return <p role="alert">Couldn't load this journal: {error.message}</p>;
+  if (!data?.journal) return <p>Journal not found.</p>;
+
+  const { journal } = data;
+
+  return (
+    <main>
+      <p>
+        <Link to="/">← All journals</Link>
+      </p>
+      <h1>{journal.title}</h1>
+      <NewPostForm journalId={journal.id} />
+      {journal.posts.length === 0 ? (
+        <p>No posts yet.</p>
+      ) : (
+        journal.posts.map((post) => (
+          <article key={post.id}>
+            <time dateTime={post.createdAt}>{dateFormat.format(new Date(post.createdAt))}</time>
+            {editingId === post.id ? (
+              <EditPostForm
+                postId={post.id}
+                blocks={post.blocks}
+                onDone={() => setEditingId(null)}
+              />
+            ) : (
+              <>
+                {post.blocks.map((block) =>
+                  block.__typename === 'TextBlock' ? (
+                    <p key={block.id} style={{ whiteSpace: 'pre-wrap' }}>
+                      {block.text}
+                    </p>
+                  ) : null,
+                )}
+                <button type="button" onClick={() => setEditingId(post.id)}>
+                  Edit
+                </button>
+              </>
+            )}
+          </article>
+        ))
+      )}
+    </main>
+  );
+}
