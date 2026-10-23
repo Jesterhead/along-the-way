@@ -1,6 +1,8 @@
 import { useMutation } from '@apollo/client/react';
 import { type FormEvent, useState } from 'react';
 
+import { Button } from '../ui/button/Button';
+import { TextArea } from '../ui/textArea/TextArea';
 import { UpdatePostMutation } from './posts.graphql';
 
 interface EditPostFormProps {
@@ -38,22 +40,28 @@ export function EditPostForm({ postId, blocks, onDone }: EditPostFormProps) {
   const hasBlankBlock = texts.some((text) => !text.trim());
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form onSubmit={handleSubmit} className="flex flex-col gap-3">
       {blocks.map((block, index) => (
-        <textarea
+        <TextArea
           key={block.id}
           aria-label={`Edit block ${index + 1} of ${blocks.length}`}
           value={texts[index]}
           onChange={(e) => setTextAt(index, e.target.value)}
         />
       ))}
-      <button type="submit" disabled={loading || hasBlankBlock}>
-        Save
-      </button>
-      <button type="button" onClick={onDone} disabled={loading}>
-        Cancel
-      </button>
-      {error && <p role="alert">{error.message}</p>}
+      <div className="flex gap-2 justify-end">
+        <Button type="submit" disabled={loading || hasBlankBlock}>
+          Save
+        </Button>
+        <Button variant="secondary" onClick={onDone} disabled={loading}>
+          Cancel
+        </Button>
+      </div>
+      {error && (
+        <p role="alert" className="text-sm text-destructive">
+          {error.message}
+        </p>
+      )}
     </form>
   );
 }

@@ -1,0 +1,83 @@
+@import 'tailwindcss';
+
+:root {
+  --background: #fafbf9;
+  --foreground: #5a6254;
+  --card: #fdfdfc;
+  --card-foreground: #5a6254;
+  --muted-foreground: #6a7165;
+  --border: #e4e6e2;
+  --primary: #6b9e66;
+  --primary-foreground: #000000;
+  --secondary: #899587;
+  --secondary-foreground: #000000;
+  --accent: #43573f;
+  --accent-foreground: #ffffff;
+  --link: #43573f;
+  --input: #899587;
+  --ring: #43573f;
+  --destructive: #a63d33;
+  --destructive-foreground: #ffffff;
+}
+
+@theme inline {
+  --color-*: initial;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-link: var(--link);
+}
+
+/* Dark mode: same token names, different values. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #192018;
+    --foreground: #a9aba9;
+    --card: #272d26;
+    --card-foreground: #a9aba9;
+    --muted-foreground: #969996;
+    --border: #414a3f;
+    --primary: #5c9f56;
+    --primary-foreground: #000000;
+    --secondary: #9aae98;
+    --secondary-foreground: #000000;
+    --accent: #567e53;
+    --accent-foreground: #ffffff;
+    --link: #7faa7b;
+    --input: #737d71;
+    --ring: #7faa7b;
+    --destructive: #e07a70;
+    --destructive-foreground: #000000;
+  }
+}
+
+@layer base {
+  :root {
+    color-scheme: light dark;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@theme {
+  --font-display: 'Caveat Variable', cursive;
+  --radius-card: 0.75rem;
+  --shadow-card: 0 1px 3px rgb(0 0 0 / 0.08);
+  --font-serif: Georgia, serif;
+}

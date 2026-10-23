@@ -1,6 +1,7 @@
 import { useQuery } from '@apollo/client/react';
 import { Link } from 'react-router';
 
+import { Card } from '../../ui/card/Card';
 import { HomePageQuery } from './HomePage.query';
 
 export function HomePage() {
@@ -11,17 +12,18 @@ export function HomePage() {
   if (!data?.me) return <p>No user found. Has the database been seeded?</p>;
 
   return (
-    <main>
-      <h1>along the way</h1>
+    <div>
       <p>Welcome, {data.me.displayName}.</p>
-      <h2>Your journals</h2>
-      <ul>
-        {data.me.journals.map((journal) => (
-          <li key={journal.id}>
-            <Link to={`/journals/${journal.id}`}>{journal.title}</Link>
-          </li>
-        ))}
-      </ul>
-    </main>
+      <h1>Your journals</h1>
+      <Card>
+        <ul>
+          {data.me.journals.map((journal) => (
+            <li key={journal.id}>
+              <Link to={`/journals/${journal.id}`}>{journal.title}</Link>
+            </li>
+          ))}
+        </ul>
+      </Card>
+    </div>
   );
 }

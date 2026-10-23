@@ -2,7 +2,7 @@
 
 A small web app that works as a shareable digital personal journal. Write posts, add photos and links, and share your journal with others.
 
-**Stack:** TypeScript · React (Vite) · Apollo GraphQL · Node.js (Express) · Prisma · PostgreSQL · Docker
+**Stack:** TypeScript · React (Vite) · Tailwind CSS · Apollo GraphQL · Node.js (Express) · Prisma · PostgreSQL · Docker
 
 ## Prerequisites
 

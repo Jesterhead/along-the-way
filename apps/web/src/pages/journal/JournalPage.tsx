@@ -4,6 +4,8 @@ import { Link, useParams } from 'react-router';
 
 import { EditPostForm } from '../../posts/EditPostForm';
 import { NewPostForm } from '../../posts/NewPostForm';
+import { Button } from '../../ui/button/Button';
+import { Card } from '../../ui/card/Card';
 import { JournalPageQuery } from './JournalPage.query';
 
 const dateFormat = new Intl.DateTimeFormat(undefined, {
@@ -23,41 +25,51 @@ export function JournalPage() {
   const { journal } = data;
 
   return (
-    <main>
+    <div className="flex flex-col gap-6">
       <p>
-        <Link to="/">← All journals</Link>
+        <Link to="/" className="text-link">
+          ← All journals
+        </Link>
       </p>
-      <h1>{journal.title}</h1>
+      <h1 className="text-2xl font-semibold">{journal.title}</h1>
       <NewPostForm journalId={journal.id} />
       {journal.posts.length === 0 ? (
         <p>No posts yet.</p>
       ) : (
-        journal.posts.map((post) => (
-          <article key={post.id}>
-            <time dateTime={post.createdAt}>{dateFormat.format(new Date(post.createdAt))}</time>
-            {editingId === post.id ? (
-              <EditPostForm
-                postId={post.id}
-                blocks={post.blocks}
-                onDone={() => setEditingId(null)}
-              />
-            ) : (
-              <>
-                {post.blocks.map((block) =>
-                  block.__typename === 'TextBlock' ? (
-                    <p key={block.id} style={{ whiteSpace: 'pre-wrap' }}>
-                      {block.text}
-                    </p>
-                  ) : null,
+        <div className="flex flex-col gap-4">
+          {journal.posts.map((post) => (
+            <Card key={post.id}>
+              <article className="flex flex-col gap-3">
+                <time className="text-sm text-muted-foreground" dateTime={post.createdAt}>
+                  {dateFormat.format(new Date(post.createdAt))}
+                </time>
+                {editingId === post.id ? (
+                  <EditPostForm
+                    postId={post.id}
+                    blocks={post.blocks}
+                    onDone={() => setEditingId(null)}
+                  />
+                ) : (
+                  <>
+                    {post.blocks.map((block) =>
+                      block.__typename === 'TextBlock' ? (
+                        <p key={block.id} className="whitespace-pre-wrap">
+                          {block.text}
+                        </p>
+                      ) : null,
+                    )}
+                    <div className="flex gap-2 justify-end">
+                      <Button variant="ghost" onClick={() => setEditingId(post.id)}>
+                        Edit
+                      </Button>
+                    </div>
+                  </>
                 )}
-                <button type="button" onClick={() => setEditingId(post.id)}>
-                  Edit
-                </button>
-              </>
-            )}
-          </article>
-        ))
+              </article>
+            </Card>
+          ))}
+        </div>
       )}
-    </main>
+    </div>
   );
 }

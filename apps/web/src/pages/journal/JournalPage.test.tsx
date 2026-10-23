@@ -1,8 +1,8 @@
 import { MockedProvider } from '@apollo/client/testing/react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import type { ComponentProps } from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { CreatePostMutation, UpdatePostMutation } from '../../posts/posts.graphql';
 import { JournalPage } from './JournalPage';
@@ -77,7 +77,7 @@ describe('JournalPage', () => {
       renderPage([journalQuery([post('p1', [textBlock('b1', 0, 'Line one\nLine two')])])]);
 
       const paragraph = await screen.findByText(/Line one/);
-      expect(paragraph).toHaveStyle({ whiteSpace: 'pre-wrap' });
+      expect(paragraph).toHaveClass('whitespace-pre-wrap');
       expect(paragraph.textContent).toBe('Line one\nLine two');
     });
 
@@ -207,15 +207,20 @@ describe('JournalPage', () => {
       expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
     });
 
-    it('cancel discards the draft', async () => {
-      renderPage([journalQuery(onePost)]);
+    it('cancel discards the draft without saving it', async () => {
+      // A ready mock for saving "Draft": if Cancel ever submitted the form, this would be called.
+      const saveDraft = updatePostMock('p1', ['Draft']);
+      const saveResult = vi.fn(() => saveDraft.result);
+      renderPage([journalQuery(onePost), { request: saveDraft.request, result: saveResult }]);
 
       fireEvent.click(await screen.findByRole('button', { name: 'Edit' }));
       fireEvent.change(screen.getByRole('textbox', { name: 'Edit block 1 of 1' }), {
         target: { value: 'Draft' },
       });
       fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      await act(() => new Promise((resolve) => setTimeout(resolve, 50)));
 
+      expect(saveResult).not.toHaveBeenCalled();
       expect(screen.getByText('Before', { selector: 'p' })).toBeInTheDocument();
       expect(screen.queryByText('Draft')).not.toBeInTheDocument();
     });
