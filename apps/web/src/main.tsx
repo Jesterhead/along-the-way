@@ -1,3 +1,6 @@
+import './styles/theme.css';
+import '@fontsource-variable/caveat';
+
 import { ApolloProvider } from '@apollo/client/react';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
