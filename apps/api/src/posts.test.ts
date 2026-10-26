@@ -34,6 +34,7 @@ describe('createPost', () => {
       variables: {
         journalId: journal.id,
         input: {
+          title: 'Test post',
           blocks: [
             { type: 'TEXT', text: 'First' },
             { type: 'TEXT', text: 'Second' },
@@ -57,7 +58,10 @@ describe('createPost', () => {
 
     const result = await execute(CREATE_POST, {
       currentUserId: user.id,
-      variables: { journalId: journal.id, input: { blocks: [{ type: 'TEXT', text: '   ' }] } },
+      variables: {
+        journalId: journal.id,
+        input: { title: 'Test post', blocks: [{ type: 'TEXT', text: '   ' }] },
+      },
     });
 
     expect(errorCode(result)).toBe('BAD_USER_INPUT');
@@ -70,7 +74,7 @@ describe('createPost', () => {
 
     const result = await execute(CREATE_POST, {
       currentUserId: user.id,
-      variables: { journalId: journal.id, input: { blocks: [] } },
+      variables: { journalId: journal.id, input: { title: 'Test post', blocks: [] } },
     });
 
     expect(errorCode(result)).toBe('BAD_USER_INPUT');
@@ -102,7 +106,10 @@ describe('updatePost', () => {
 
     const result = await execute(UPDATE_POST, {
       currentUserId: intruder.id,
-      variables: { id: post.id, input: { blocks: [{ type: 'TEXT', text: 'Hacked' }] } },
+      variables: {
+        id: post.id,
+        input: { title: 'Test post', blocks: [{ type: 'TEXT', text: 'Hacked' }] },
+      },
     });
 
     expect(errorCode(result)).toBe('NOT_FOUND');
@@ -121,6 +128,7 @@ describe('updatePost', () => {
       variables: {
         id: post.id,
         input: {
+          title: 'Renamed post',
           blocks: [
             { type: 'TEXT', text: 'New first' },
             { type: 'TEXT', text: 'New second' },
@@ -201,6 +209,7 @@ function createPost(journalId: string, texts: string[], { at = new Date() } = {}
   return prisma.post.create({
     data: {
       journalId,
+      title: texts[0] ?? 'Test post',
       createdAt: at,
       updatedAt: at,
       blocks: {
@@ -247,7 +256,10 @@ describe('access control', () => {
 
     const result = await execute(CREATE_POST, {
       currentUserId: intruder.id,
-      variables: { journalId: journal.id, input: { blocks: [{ type: 'TEXT', text: 'Hi' }] } },
+      variables: {
+        journalId: journal.id,
+        input: { title: 'Test post', blocks: [{ type: 'TEXT', text: 'Hi' }] },
+      },
     });
 
     expect(errorCode(result)).toBe('NOT_FOUND');
@@ -261,10 +273,16 @@ describe('access control', () => {
 
     const read = await execute(JOURNAL, { variables: { id: journal.id } });
     const create = await execute(CREATE_POST, {
-      variables: { journalId: journal.id, input: { blocks: [{ type: 'TEXT', text: 'Hi' }] } },
+      variables: {
+        journalId: journal.id,
+        input: { title: 'Test post', blocks: [{ type: 'TEXT', text: 'Hi' }] },
+      },
     });
     const update = await execute(UPDATE_POST, {
-      variables: { id: post.id, input: { blocks: [{ type: 'TEXT', text: 'Changed' }] } },
+      variables: {
+        id: post.id,
+        input: { title: 'Test post', blocks: [{ type: 'TEXT', text: 'Changed' }] },
+      },
     });
 
     expect([errorCode(read), errorCode(create), errorCode(update)]).toEqual([
@@ -282,11 +300,17 @@ describe('input safety', () => {
 
     const create = await execute(CREATE_POST, {
       currentUserId: user.id,
-      variables: { journalId: 'not-a-uuid', input: { blocks: [{ type: 'TEXT', text: 'Hi' }] } },
+      variables: {
+        journalId: 'not-a-uuid',
+        input: { title: 'Test post', blocks: [{ type: 'TEXT', text: 'Hi' }] },
+      },
     });
     const update = await execute(UPDATE_POST, {
       currentUserId: user.id,
-      variables: { id: 'not-a-uuid', input: { blocks: [{ type: 'TEXT', text: 'Hi' }] } },
+      variables: {
+        id: 'not-a-uuid',
+        input: { title: 'Test post', blocks: [{ type: 'TEXT', text: 'Hi' }] },
+      },
     });
 
     expect(errorCode(create)).toBe('NOT_FOUND');
@@ -299,7 +323,10 @@ describe('input safety', () => {
 
     const result = await execute(UPDATE_POST, {
       currentUserId: user.id,
-      variables: { id: post.id, input: { blocks: [{ type: 'TEXT', text: '  ' }] } },
+      variables: {
+        id: post.id,
+        input: { title: 'Test post', blocks: [{ type: 'TEXT', text: '  ' }] },
+      },
     });
 
     expect(errorCode(result)).toBe('BAD_USER_INPUT');
@@ -308,5 +335,94 @@ describe('input safety', () => {
       orderBy: { position: 'asc' },
     });
     expect(blocks.map((block) => block.text)).toEqual(['Keep me', 'Me too']);
+  });
+});
+
+describe('post titles', () => {
+  it('stores the title trimmed', async () => {
+    const user = await createUser();
+    const journal = await createJournal(user.id);
+
+    const result = await execute<{ createPost: { id: string } }>(CREATE_POST, {
+      currentUserId: user.id,
+      variables: {
+        journalId: journal.id,
+        input: { title: '  Morning hike  ', blocks: [{ type: 'TEXT', text: 'Hi' }] },
+      },
+    });
+
+    expect(result.errors).toBeUndefined();
+    const post = await prisma.post.findUniqueOrThrow({ where: { id: result.data!.createPost.id } });
+    expect(post.title).toBe('Morning hike');
+  });
+
+  it('rejects a blank title', async () => {
+    const user = await createUser();
+    const journal = await createJournal(user.id);
+
+    const result = await execute(CREATE_POST, {
+      currentUserId: user.id,
+      variables: {
+        journalId: journal.id,
+        input: { title: '   ', blocks: [{ type: 'TEXT', text: 'Hi' }] },
+      },
+    });
+
+    expect(errorCode(result)).toBe('BAD_USER_INPUT');
+    expect(await prisma.post.count()).toBe(0);
+  });
+
+  it('accepts 120 characters and rejects 121', async () => {
+    const user = await createUser();
+    const journal = await createJournal(user.id);
+    const create = (title: string) =>
+      execute(CREATE_POST, {
+        currentUserId: user.id,
+        variables: {
+          journalId: journal.id,
+          input: { title, blocks: [{ type: 'TEXT', text: 'Hi' }] },
+        },
+      });
+
+    expect((await create('a'.repeat(120))).errors).toBeUndefined();
+    expect(errorCode(await create('a'.repeat(121)))).toBe('BAD_USER_INPUT');
+    expect(await prisma.post.count()).toBe(1);
+  });
+
+  it('updatePost changes the title', async () => {
+    const user = await createUser();
+    const post = await createPost((await createJournal(user.id)).id, ['Body']);
+
+    const result = await execute(UPDATE_POST, {
+      currentUserId: user.id,
+      variables: {
+        id: post.id,
+        input: { title: 'Renamed', blocks: [{ type: 'TEXT', text: 'Body' }] },
+      },
+    });
+
+    expect(result.errors).toBeUndefined();
+    expect((await prisma.post.findUniqueOrThrow({ where: { id: post.id } })).title).toBe('Renamed');
+  });
+
+  it('leaves the post untouched when the new title is rejected', async () => {
+    const user = await createUser();
+    const post = await createPost((await createJournal(user.id)).id, ['Keep me']);
+
+    const result = await execute(UPDATE_POST, {
+      currentUserId: user.id,
+      variables: {
+        id: post.id,
+        input: { title: ' ', blocks: [{ type: 'TEXT', text: 'Changed' }] },
+      },
+    });
+
+    expect(errorCode(result)).toBe('BAD_USER_INPUT');
+    const saved = await prisma.post.findUniqueOrThrow({
+      where: { id: post.id },
+      include: { blocks: true },
+    });
+    expect(saved.title).toBe(post.title);
+    expect(saved.blocks.map((block) => block.text)).toEqual(['Keep me']);
   });
 });

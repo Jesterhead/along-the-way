@@ -12,6 +12,7 @@ export const UpdatePostMutation = graphql(`
   mutation UpdatePost($id: ID!, $input: PostInput!) {
     updatePost(id: $id, input: $input) {
       id
+      title
       updatedAt
       blocks {
         __typename

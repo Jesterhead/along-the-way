@@ -16,6 +16,8 @@ type Mutation {
 
   "Replaces the post's blocks with the ones in the input."
   updatePost(id: ID!, input: PostInput!): Post!
+
+  updateJournal(id: ID!, input: JournalInput!): Journal!
 }
 
 type User {
@@ -36,6 +38,7 @@ enum BlockType {
 }
 
 input PostInput {
+  title: String!
   "Block order is the array order."
   blocks: [BlockInput!]!
 }
@@ -46,12 +49,17 @@ input BlockInput {
   text: String
 }
 
+input JournalInput {
+  title: String!
+}
+
 type Post {
   id: ID!
   journal: Journal!
   blocks: [Block!]!
   createdAt: DateTime!
   updatedAt: DateTime!
+  title: String!
 }
 
 interface Block {

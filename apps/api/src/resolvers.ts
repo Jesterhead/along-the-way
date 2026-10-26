@@ -3,6 +3,9 @@ import { GraphQLError, GraphQLScalarType, Kind } from 'graphql';
 import type { Context } from './context.js';
 import type { BlockInput, Resolvers } from './generated/graphql.js';
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const MAX_TITLE_LENGTH = 120;
+
 function badInput(message: string): GraphQLError {
   return new GraphQLError(message, { extensions: { code: 'BAD_USER_INPUT' } });
 }
@@ -19,7 +22,14 @@ function requireUser({ currentUserId }: Context): string {
   return currentUserId;
 }
 
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function toTitle(title: string): string {
+  const trimmed = title.trim();
+  if (!trimmed) throw badInput('Title is required');
+  if (trimmed.length > MAX_TITLE_LENGTH) {
+    throw badInput(`Title must be at most ${MAX_TITLE_LENGTH} characters`);
+  }
+  return trimmed;
+}
 
 // Postgres rejects non-UUID values in UUID columns with an error, so treat a
 // malformed ID the same as an ID that doesn't exist.
@@ -107,7 +117,11 @@ export const resolvers: Resolvers = {
       if (!journal) throw notFound('Journal');
 
       return prisma.post.create({
-        data: { journalId, blocks: { create: toBlockRows(input.blocks) } },
+        data: {
+          journalId,
+          blocks: { create: toBlockRows(input.blocks) },
+          title: toTitle(input.title),
+        },
       });
     },
 
@@ -120,6 +134,8 @@ export const resolvers: Resolvers = {
       });
       if (!post) throw notFound('Post');
 
+      const title = toTitle(input.title);
+
       const blocks = toBlockRows(input.blocks);
       // Delete first: the new blocks reuse positions 0..n, which would collide with
       // the old rows on the (postId, position) unique index.
@@ -127,10 +143,23 @@ export const resolvers: Resolvers = {
         await tx.block.deleteMany({ where: { postId: id } });
         return tx.post.update({
           where: { id },
-          // Set explicitly: a nested-only write doesn't touch the Post row, so @updatedAt wouldn't change.
-          data: { updatedAt: new Date(), blocks: { create: blocks } },
+          data: { title, blocks: { create: blocks } },
         });
       });
+    },
+
+    updateJournal: async (_parent, { id, input }, context) => {
+      const { prisma } = context;
+      if (!isUuid(id)) throw notFound('Journal');
+      const journal = await prisma.journal.findFirst({
+        where: { id, ownerId: requireUser(context) },
+        select: { id: true },
+      });
+      if (!journal) throw notFound('Journal');
+
+      const title = toTitle(input.title);
+
+      return prisma.journal.update({ where: { id }, data: { title } });
     },
   },
 };

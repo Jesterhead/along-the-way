@@ -7,6 +7,7 @@ export const JournalPageQuery = graphql(`
       title
       posts {
         id
+        title
         createdAt
         blocks {
           __typename
