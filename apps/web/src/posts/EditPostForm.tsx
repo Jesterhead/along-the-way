@@ -2,17 +2,21 @@ import { useMutation } from '@apollo/client/react';
 import { type FormEvent, useState } from 'react';
 
 import { Button } from '../ui/button/Button';
+import { Input } from '../ui/input/Input';
 import { TextArea } from '../ui/textArea/TextArea';
 import { UpdatePostMutation } from './posts.graphql';
 
 interface EditPostFormProps {
   postId: string;
+  initialTitle: string;
   blocks: { id: string; text: string }[];
   onDone: () => void;
 }
 
-export function EditPostForm({ postId, blocks, onDone }: EditPostFormProps) {
+export function EditPostForm({ postId, initialTitle, blocks, onDone }: EditPostFormProps) {
   const [texts, setTexts] = useState(() => blocks.map((block) => block.text));
+  const [title, setTitle] = useState(initialTitle);
+
   // No refetchQueries: the response returns the Post with its id, so Apollo's cache
   // updates the existing post in place and JournalPage re-renders by itself.
   const [updatePost, { loading, error }] = useMutation(UpdatePostMutation);
@@ -28,7 +32,7 @@ export function EditPostForm({ postId, blocks, onDone }: EditPostFormProps) {
       await updatePost({
         variables: {
           id: postId,
-          input: { blocks: texts.map((text) => ({ type: 'TEXT', text })) },
+          input: { title, blocks: texts.map((text) => ({ type: 'TEXT', text })) },
         },
       });
       onDone();
@@ -38,9 +42,16 @@ export function EditPostForm({ postId, blocks, onDone }: EditPostFormProps) {
   }
 
   const hasBlankBlock = texts.some((text) => !text.trim());
+  const hasNoTitle = !title.trim();
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+      <Input
+        aria-label="Edit post title"
+        maxLength={120}
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+      />
       {blocks.map((block, index) => (
         <TextArea
           key={block.id}
@@ -50,7 +61,7 @@ export function EditPostForm({ postId, blocks, onDone }: EditPostFormProps) {
         />
       ))}
       <div className="flex gap-2 justify-end">
-        <Button type="submit" disabled={loading || hasBlankBlock}>
+        <Button type="submit" disabled={loading || hasNoTitle || hasBlankBlock}>
           Save
         </Button>
         <Button variant="secondary" onClick={onDone} disabled={loading}>

@@ -4,6 +4,7 @@ import type { ComponentProps } from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
+import { UpdateJournalMutation } from '../../journals/journals.graphql';
 import { CreatePostMutation, UpdatePostMutation } from '../../posts/posts.graphql';
 import { JournalPage } from './JournalPage';
 import { JournalPageQuery } from './JournalPage.query';
@@ -15,8 +16,8 @@ function textBlock(id: string, position: number, text: string) {
   return { __typename: 'TextBlock' as const, id, position, text };
 }
 
-function post(id: string, blocks: ReturnType<typeof textBlock>[]) {
-  return { __typename: 'Post' as const, id, createdAt: '2026-10-19T18:00:00.000Z', blocks };
+function post(id: string, blocks: ReturnType<typeof textBlock>[], title = 'Post title') {
+  return { __typename: 'Post' as const, id, title, createdAt: '2026-10-19T18:00:00.000Z', blocks };
 }
 
 function journalQuery(posts: ReturnType<typeof post>[]) {
@@ -28,22 +29,33 @@ function journalQuery(posts: ReturnType<typeof post>[]) {
   };
 }
 
-function updatePostMock(id: string, texts: string[]) {
+function updatePostMock(id: string, texts: string[], title = 'Post title') {
   return {
     request: {
       query: UpdatePostMutation,
-      variables: { id, input: { blocks: texts.map((text) => ({ type: 'TEXT' as const, text })) } },
+      variables: {
+        id,
+        input: { title, blocks: texts.map((text) => ({ type: 'TEXT' as const, text })) },
+      },
     },
     result: {
       data: {
         updatePost: {
           __typename: 'Post' as const,
           id,
+          title,
           updatedAt: '2026-10-20T10:00:00.000Z',
           blocks: texts.map((text, i) => textBlock(`${id}-new-${i}`, i, text)),
         },
       },
     },
+  };
+}
+
+function updateJournalMock(title: string) {
+  return {
+    request: { query: UpdateJournalMutation, variables: { id: 'j1', input: { title } } },
+    result: { data: { updateJournal: { __typename: 'Journal' as const, id: 'j1', title } } },
   };
 }
 
@@ -79,6 +91,12 @@ describe('JournalPage', () => {
       const paragraph = await screen.findByText(/Line one/);
       expect(paragraph).toHaveClass('whitespace-pre-wrap');
       expect(paragraph.textContent).toBe('Line one\nLine two');
+    });
+
+    it("shows each post's title as a heading", async () => {
+      renderPage([journalQuery([post('p1', [textBlock('b1', 0, 'Body')], 'Morning hike')])]);
+
+      expect(await screen.findByRole('heading', { name: 'Morning hike' })).toBeInTheDocument();
     });
 
     it('shows an empty state when there are no posts', async () => {
@@ -117,19 +135,27 @@ describe('JournalPage', () => {
         {
           request: {
             query: CreatePostMutation,
-            variables: { journalId: 'j1', input: { blocks: [{ type: 'TEXT', text: 'Hello' }] } },
+            variables: {
+              journalId: 'j1',
+              input: { title: 'Greeting', blocks: [{ type: 'TEXT', text: 'Hello' }] },
+            },
           },
           result: { data: { createPost: { __typename: 'Post', id: 'p2' } } },
         },
-        journalQuery([post('p2', [textBlock('b1', 0, 'Hello')])]),
+        journalQuery([post('p2', [textBlock('b1', 0, 'Hello')], 'Greeting')]),
       ]);
 
-      fireEvent.change(await screen.findByRole('textbox', { name: 'New post' }), {
+      fireEvent.change(await screen.findByRole('textbox', { name: 'New post title' }), {
+        target: { value: 'Greeting' },
+      });
+      fireEvent.change(screen.getByRole('textbox', { name: 'New post' }), {
         target: { value: 'Hello' },
       });
       fireEvent.click(screen.getByRole('button', { name: 'Post' }));
 
-      expect(await screen.findByText('Hello', { selector: 'p' })).toBeInTheDocument();
+      expect(await screen.findByRole('heading', { name: 'Greeting' })).toBeInTheDocument();
+      expect(screen.getByText('Hello', { selector: 'p' })).toBeInTheDocument();
+      expect(screen.getByRole('textbox', { name: 'New post title' })).toHaveValue('');
       expect(screen.getByRole('textbox', { name: 'New post' })).toHaveValue('');
     });
 
@@ -139,19 +165,46 @@ describe('JournalPage', () => {
         {
           request: {
             query: CreatePostMutation,
-            variables: { journalId: 'j1', input: { blocks: [{ type: 'TEXT', text: 'Hello' }] } },
+            variables: {
+              journalId: 'j1',
+              input: { title: 'Greeting', blocks: [{ type: 'TEXT', text: 'Hello' }] },
+            },
           },
           error: new Error('Server unavailable'),
         },
       ]);
 
-      fireEvent.change(await screen.findByRole('textbox', { name: 'New post' }), {
+      fireEvent.change(await screen.findByRole('textbox', { name: 'New post title' }), {
+        target: { value: 'Greeting' },
+      });
+      fireEvent.change(screen.getByRole('textbox', { name: 'New post' }), {
         target: { value: 'Hello' },
       });
       fireEvent.click(screen.getByRole('button', { name: 'Post' }));
 
       expect(await screen.findByRole('alert')).toHaveTextContent('Server unavailable');
+      expect(screen.getByRole('textbox', { name: 'New post title' })).toHaveValue('Greeting');
       expect(screen.getByRole('textbox', { name: 'New post' })).toHaveValue('Hello');
+    });
+
+    it('disables Post until both a title and text are filled in', async () => {
+      renderPage([journalQuery([])]);
+
+      const post = await screen.findByRole('button', { name: 'Post' });
+      fireEvent.change(screen.getByRole('textbox', { name: 'New post' }), {
+        target: { value: 'Hello' },
+      });
+      expect(post).toBeDisabled();
+
+      fireEvent.change(screen.getByRole('textbox', { name: 'New post title' }), {
+        target: { value: '   ' },
+      });
+      expect(post).toBeDisabled();
+
+      fireEvent.change(screen.getByRole('textbox', { name: 'New post title' }), {
+        target: { value: 'Greeting' },
+      });
+      expect(post).toBeEnabled();
     });
   });
 
@@ -194,6 +247,33 @@ describe('JournalPage', () => {
       expect(await screen.findByText('Second, edited', { selector: 'p' })).toBeInTheDocument();
       expect(screen.getByText('First', { selector: 'p' })).toBeInTheDocument();
       expect(screen.getByText('Third', { selector: 'p' })).toBeInTheDocument();
+    });
+
+    it('shows the current title and saves a renamed post in place', async () => {
+      renderPage([
+        journalQuery([post('p1', [textBlock('b1', 0, 'Before')], 'Old title')]),
+        updatePostMock('p1', ['Before'], 'New title'),
+      ]);
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Edit' }));
+      const titleBox = screen.getByRole('textbox', { name: 'Edit post title' });
+      expect(titleBox).toHaveValue('Old title');
+      fireEvent.change(titleBox, { target: { value: 'New title' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+      expect(await screen.findByRole('heading', { name: 'New title' })).toBeInTheDocument();
+      expect(screen.queryByRole('heading', { name: 'Old title' })).not.toBeInTheDocument();
+    });
+
+    it('disables Save while the title is blank', async () => {
+      renderPage([journalQuery(onePost)]);
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Edit' }));
+      fireEvent.change(screen.getByRole('textbox', { name: 'Edit post title' }), {
+        target: { value: '  ' },
+      });
+
+      expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
     });
 
     it('disables Save while any block is blank', async () => {
@@ -239,6 +319,74 @@ describe('JournalPage', () => {
 
       expect(await screen.findByRole('alert')).toHaveTextContent('Timed out');
       expect(screen.getByRole('textbox', { name: 'Edit block 1 of 1' })).toHaveValue('After');
+    });
+  });
+
+  describe('renaming the journal', () => {
+    it('shows the current title and updates the heading in place on save', async () => {
+      // Only one journal query is mocked: a refetch would have no response and fail.
+      renderPage([journalQuery([]), updateJournalMock('Summer trip')]);
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Rename' }));
+      const titleBox = screen.getByRole('textbox', { name: 'Edit journal title' });
+      expect(titleBox).toHaveValue('Travel');
+      fireEvent.change(titleBox, { target: { value: 'Summer trip' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+      expect(await screen.findByRole('heading', { name: 'Summer trip' })).toBeInTheDocument();
+      expect(screen.queryByRole('textbox', { name: 'Edit journal title' })).not.toBeInTheDocument();
+    });
+
+    it('cancel keeps the old title without saving', async () => {
+      const rename = updateJournalMock('Draft');
+      const renameResult = vi.fn(() => rename.result);
+      renderPage([journalQuery([]), { request: rename.request, result: renameResult }]);
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Rename' }));
+      fireEvent.change(screen.getByRole('textbox', { name: 'Edit journal title' }), {
+        target: { value: 'Draft' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      await act(() => new Promise((resolve) => setTimeout(resolve, 50)));
+
+      expect(renameResult).not.toHaveBeenCalled();
+      expect(screen.getByRole('heading', { name: 'Travel' })).toBeInTheDocument();
+    });
+
+    it('disables Save for a blank or unchanged title', async () => {
+      renderPage([journalQuery([])]);
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Rename' }));
+      const titleBox = screen.getByRole('textbox', { name: 'Edit journal title' });
+      const save = screen.getByRole('button', { name: 'Save' });
+      expect(save).toBeDisabled();
+
+      fireEvent.change(titleBox, { target: { value: '   ' } });
+      expect(save).toBeDisabled();
+
+      fireEvent.change(titleBox, { target: { value: '  Travel  ' } });
+      expect(save).toBeDisabled();
+
+      fireEvent.change(titleBox, { target: { value: 'Summer trip' } });
+      expect(save).toBeEnabled();
+    });
+
+    it('stays in rename mode and keeps the draft when saving fails', async () => {
+      renderPage([
+        journalQuery([]),
+        { ...updateJournalMock('Summer trip'), result: undefined, error: new Error('Offline') },
+      ]);
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Rename' }));
+      fireEvent.change(screen.getByRole('textbox', { name: 'Edit journal title' }), {
+        target: { value: 'Summer trip' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+      expect(await screen.findByRole('alert')).toHaveTextContent('Offline');
+      expect(screen.getByRole('textbox', { name: 'Edit journal title' })).toHaveValue(
+        'Summer trip',
+      );
     });
   });
 });
